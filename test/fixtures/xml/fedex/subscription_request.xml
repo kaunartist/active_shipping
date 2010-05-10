@@ -16,6 +16,9 @@
     <ClientProductId>ABCD</ClientProductId>
     <ClientProductVersion>1234</ClientProductVersion>
   </ClientDetail>
+  <TransactionDetail>
+    <CustomerTransactionId>Subscription Request</CustomerTransactionId>
+  </TransactionDetail>
   <Version>
     <ServiceId>fcas</ServiceId>
     <Major>2</Major>

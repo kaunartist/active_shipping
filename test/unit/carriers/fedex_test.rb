@@ -4,14 +4,63 @@ class FedExTest < Test::Unit::TestCase
   def setup
     @packages               = TestFixtures.packages
     @locations              = TestFixtures.locations
-    @carrier                = FedEx.new(:key => '1111', :password => '2222', :account => '3333', :login => '4444')
+    @carrier                = FedEx.new(:csp_key => '1111', :csp_password => '2222', :account_number => '3333', :meter_number => '4444', :user_key => '5555', :user_password => '6666', :client_product_id => '7777', :client_product_version => '8888', :categories => 'SHIPPING')
   end
   
   def test_initialize_options_requirements
-    assert_raises ArgumentError do FedEx.new end
-    assert_raises ArgumentError do FedEx.new(:login => '999999999') end
-    assert_raises ArgumentError do FedEx.new(:password => '7777777') end
-    assert_nothing_raised { FedEx.new(:key => '999999999', :password => '7777777', :account => '123', :login => '123')}
+    assert_raises(ArgumentError) { FedEx.new }
+    assert_raises(ArgumentError) { FedEx.new(:login => '999999999') }
+    assert_raises(ArgumentError) { FedEx.new(:password => '7777777') }
+    assert_nothing_raised { FedEx.new(:csp_key => '999999999', :csp_password => '7777777') }
+  end
+  
+  def test_register_user_returns_a_registration_response
+    @carrier = FedEx.new(:csp_key => 'CSP KEY', :csp_password => 'CSP PWD', :account_number => '000000000', :client_product_id => 'ABCD', :client_product_version => '1234', :categories => 'SHIPPING')
+    
+    @carrier.expects(:commit).returns(xml_fixture('fedex/registration_response'))
+    assert_instance_of ActiveMerchant::Shipping::FedEx::RegistrationResponse, @carrier.register_user(registration_parameters)
+  end
+  
+  def test_building_request_and_parsing_registration_response
+    @carrier = FedEx.new(:csp_key => 'CSP KEY', :csp_password => 'CSP PWD', :client_product_id => 'ABCD', :client_product_version => '1234', :client_region => 'US', :categories => 'SHIPPING')
+    
+    expected_request = xml_fixture('fedex/registration_request')
+    mock_response = xml_fixture('fedex/registration_response')
+    
+    @carrier.expects(:commit).with {|request, test_mode| Hash.from_xml(request) == Hash.from_xml(expected_request) && test_mode}.returns(mock_response)
+    response = @carrier.register_user(registration_parameters.merge({:test => true}))
+    
+    assert_equal 'Generated USER KEY', response.user_key
+    assert_equal 'Generated USER PWD', response.user_password
+  end
+  
+  def test_building_and_parsing_subscription_response
+    @carrier = FedEx.new(:csp_solution_id => '000 (FedEx Provided)', :csp_key => 'CSP KEY', :csp_password => 'CSP PWD', :user_key => 'Generated USER KEY', :user_password => 'Generated USER PWD', :user_first_name => 'Your', :user_last_name => 'Name', :user_phone_number => 'Your Phone #', :user_fax_number => '', :user_email => 'abc@xyz.com', :user_streetlines => 'Your Address Info', :user_city => ' Your Address Info ', :user_state_or_province_code => ' Your State Code ', :user_postal_code => 'Your Postal Code', :user_country_code => ' Your Address Info ', :billing_street_lines => ' Your Address Info ', :billing_city => ' Your Address Info ', :billing_state_or_province_code => ' Your Address Info ', :billing_postal_code => ' Your Address Info ', :billing_postal_code => 'Your Address Info ', :billing_country_code => ' Your Address Info ', :account_number => '000000000', :client_product_id => 'ABCD', :client_product_version => '1234', :categories => 'SHIPPING')
+    
+    expected_request = xml_fixture('fedex/subscription_request')
+    mock_response = xml_fixture('fedex/subscription_response')
+    
+    @carrier.expects(:commit).with do |request, test_mode| 
+      Hash.from_xml(request) == Hash.from_xml(expected_request) && test_mode
+    end.returns(mock_response)
+    response = @carrier.subscribe_user(:test => true)
+    
+    assert_equal 'Generated Meter Number', response.meter_number
+  end
+  
+  def test_building_and_parsing_version_capture_response
+    @carrier = FedEx.new(:csp_key => 'CSP KEY', :csp_password => 'CSP PWD', :user_key => 'Generated USER KEY', :user_password => 'Generated USER PWD', :account_number => '000000000', :meter_number => 'Generated Meter Number', :client_product_id => 'ABCD', :client_product_version => '1234', :client_region => 'US or CA', :origin_location_id => 'VXYZ(FedEx)', :vendor_product_platform => 'Windows OS')
+    
+    expected_request = xml_fixture('fedex/version_capture_request')
+    mock_response = xml_fixture('fedex/version_capture_response')
+    
+    @carrier.expects(:commit).with do |request, test_mode| 
+      Hash.from_xml(request) == Hash.from_xml(expected_request) && test_mode
+    end.returns(mock_response)
+    
+    response = @carrier.version_capture('Version Capture Request', :origin_location_id => 'VXYZ(FedEx Provided)', :vendor_product_platform => 'Windows OS', :test => true)
+
+    assert_equal 'Version Capture Request', response.customer_transaction_id
   end
   
   # def test_no_rates_response
@@ -50,15 +99,15 @@ class FedExTest < Test::Unit::TestCase
     end
   end
   
-  def test_building_request_and_parsing_response
+  def test_building_rating_request_and_parsing_response
     expected_request = xml_fixture('fedex/ottawa_to_beverly_hills_rate_request')
     mock_response = xml_fixture('fedex/ottawa_to_beverly_hills_rate_response')
     Time.any_instance.expects(:to_xml_value).returns("2009-07-20T12:01:55-04:00")
     
     @carrier.expects(:commit).with {|request, test_mode| Hash.from_xml(request) == Hash.from_xml(expected_request) && test_mode}.returns(mock_response)
-    response = @carrier.find_rates( @locations[:ottawa],
-                                    @locations[:beverly_hills],
-                                    @packages.values_at(:book, :wii), :test => true)
+    response = @carrier.find_rates(@locations[:ottawa],
+                                   @locations[:beverly_hills],
+                                   @packages.values_at(:book, :wii), :test => true)
     assert_equal ["FedEx Ground"], response.rates.map(&:service_name)
     assert_equal [3836], response.rates.map(&:price)
     
@@ -113,5 +162,9 @@ class FedExTest < Test::Unit::TestCase
       assert_equal 'FedEx', rate.carrier
       assert_equal 'GBP', rate.currency
     end
+  end
+
+  def registration_parameters
+    {:account_number => '000000000', :client_region => 'US', :billing_street_lines => 'Your Address Info', :billing_city => 'Your Address Info', :billing_state_or_province_code => 'MO', :billing_postal_code => 'Your Address Info', :billing_country_code => 'Your Address Info', :user_first_name => 'Your F!st Name', :user_last_name => 'Your last name', :user_email => 'abc@xyz.com', :user_streetlines => 'Your Address Info', :user_city => 'Your Address Info', :user_state_or_province_code => 'Your Address Info', :user_postal_code => 'Your Address Info', :user_country_code => 'Your Address Info', :user_company_name => 'Your Company name', :user_phone_number => 'Your Phone #'}
   end
 end

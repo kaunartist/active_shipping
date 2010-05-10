@@ -1,21 +1,27 @@
 <?xml version="1.0"?>
-<RateRequest xmlns="http://fedex.com/ws/rate/v6">
+<RateRequest xmlns="http://fedex.com/ws/rate/v7">
   <WebAuthenticationDetail>
-    <UserCredential>
+    <CspCredential>
       <Key>1111</Key>
       <Password>2222</Password>
+    </CspCredential>
+    <UserCredential>
+      <Key>5555</Key>
+      <Password>6666</Password>
     </UserCredential>
   </WebAuthenticationDetail>
   <ClientDetail>
     <AccountNumber>3333</AccountNumber>
     <MeterNumber>4444</MeterNumber>
+    <ClientProductId>7777</ClientProductId>
+    <ClientProductVersion>8888</ClientProductVersion>
   </ClientDetail>
   <TransactionDetail>
     <CustomerTransactionId>ActiveShipping</CustomerTransactionId>
   </TransactionDetail>
   <Version>
     <ServiceId>crs</ServiceId>
-    <Major>6</Major>
+    <Major>7</Major>
     <Intermediate>0</Intermediate>
     <Minor>0</Minor>
   </Version>
@@ -39,7 +45,9 @@
     </Recipient>
     <RateRequestTypes>ACCOUNT</RateRequestTypes>
     <PackageCount>2</PackageCount>
-    <RequestedPackages>
+    <PackageDetail>INDIVIDUAL_PACKAGES</PackageDetail>
+    <RequestedPackageLineItems>
+      <SequenceNumber>001</SequenceNumber>
       <Weight>
         <Units>KG</Units>
         <Value>0.25</Value>
@@ -50,8 +58,9 @@
         <Height>2</Height>
         <Units>CM</Units>
       </Dimensions>
-    </RequestedPackages>
-    <RequestedPackages>
+    </RequestedPackageLineItems>
+    <RequestedPackageLineItems>
+      <SequenceNumber>002</SequenceNumber>
       <Weight>
         <Units>KG</Units>
         <Value>3.402</Value>
@@ -62,6 +71,6 @@
         <Height>12</Height>
         <Units>CM</Units>
       </Dimensions>
-    </RequestedPackages>
+    </RequestedPackageLineItems>
   </RequestedShipment>
 </RateRequest>
