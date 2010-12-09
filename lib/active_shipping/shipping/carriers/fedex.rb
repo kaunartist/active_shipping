@@ -25,7 +25,7 @@ module ActiveMerchant
       self.retry_safe = true
       
       cattr_reader :name
-      @@name = "FedEx®"
+      @@name = "FedEx"
       
       TEST_URL = 'https://gatewaybeta.fedex.com:443/xml'
       LIVE_URL = 'https://gateway.fedex.com:443/xml'
@@ -36,28 +36,28 @@ module ActiveMerchant
       }
       
       ServiceTypes = {
-        "PRIORITY_OVERNIGHT" => "FedEx® Priority Overnight",
-        "PRIORITY_OVERNIGHT_SATURDAY_DELIVERY" => "FedEx® Priority Overnight Saturday Delivery",
-        "FEDEX_2_DAY" => "FedEx® 2 Day",
-        "FEDEX_2_DAY_SATURDAY_DELIVERY" => "FedEx® 2 Day Saturday Delivery",
-        "STANDARD_OVERNIGHT" => "FedEx® Standard Overnight",
-        "FIRST_OVERNIGHT" => "FedEx® First Overnight",
-        "FEDEX_EXPRESS_SAVER" => "FedEx® Express Saver",
-        "FEDEX_1_DAY_FREIGHT" => "FedEx® 1 Day Freight",
-        "FEDEX_1_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx® 1 Day Freight Saturday Delivery",
-        "FEDEX_2_DAY_FREIGHT" => "FedEx® 2 Day Freight",
-        "FEDEX_2_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx® 2 Day Freight Saturday Delivery",
-        "FEDEX_3_DAY_FREIGHT" => "FedEx® 3 Day Freight",
-        "FEDEX_3_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx® 3 Day Freight Saturday Delivery",
-        "INTERNATIONAL_PRIORITY" => "FedEx® International Priority",
-        "INTERNATIONAL_PRIORITY_SATURDAY_DELIVERY" => "FedEx® International Priority Saturday Delivery",
-        "INTERNATIONAL_ECONOMY" => "FedEx® International Economy",
-        "INTERNATIONAL_FIRST" => "FedEx® International First",
-        "INTERNATIONAL_PRIORITY_FREIGHT" => "FedEx® International Priority Freight",
-        "INTERNATIONAL_ECONOMY_FREIGHT" => "FedEx® International Economy Freight",
-        "GROUND_HOME_DELIVERY" => "FedEx® Ground Home Delivery",
-        "FEDEX_GROUND" => "FedEx® Ground",
-        "INTERNATIONAL_GROUND" => "FedEx® International Ground"
+        "PRIORITY_OVERNIGHT" => "FedEx Priority Overnight®",
+        "PRIORITY_OVERNIGHT_SATURDAY_DELIVERY" => "FedEx Priority Overnight® Saturday Delivery",
+        "FEDEX_2_DAY" => "FedEx 2Day®",
+        "FEDEX_2_DAY_SATURDAY_DELIVERY" => "FedEx 2Day® Saturday Delivery",
+        "STANDARD_OVERNIGHT" => "FedEx Standard Overnight®",
+        "FIRST_OVERNIGHT" => "FedEx First Overnight®",
+        "FEDEX_EXPRESS_SAVER" => "FedEx Express Saver®",
+        "FEDEX_1_DAY_FREIGHT" => "FedEx 1Day® Freight",
+        "FEDEX_1_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx 1Day® Freight Saturday Delivery",
+        "FEDEX_2_DAY_FREIGHT" => "FedEx 2Day® Freight",
+        "FEDEX_2_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx 2Day® Freight Saturday Delivery",
+        "FEDEX_3_DAY_FREIGHT" => "FedEx 3Day® Freight",
+        "FEDEX_3_DAY_FREIGHT_SATURDAY_DELIVERY" => "FedEx 3Day® Freight Saturday Delivery",
+        "INTERNATIONAL_PRIORITY" => "FedEx International Priority®",
+        "INTERNATIONAL_PRIORITY_SATURDAY_DELIVERY" => "FedEx International Priority® Saturday Delivery",
+        "INTERNATIONAL_ECONOMY" => "FedEx International Economy®",
+        "INTERNATIONAL_FIRST" => "FedEx International First®",
+        "INTERNATIONAL_PRIORITY_FREIGHT" => "FedEx International Priority® Freight",
+        "INTERNATIONAL_ECONOMY_FREIGHT" => "FedEx International Economy® Freight",
+        "GROUND_HOME_DELIVERY" => "FedEx Ground Home Delivery®",
+        "FEDEX_GROUND" => "FedEx Ground®",
+        "INTERNATIONAL_GROUND" => "FedEx International Ground®"
       }
 
       PackageTypes = {
@@ -121,13 +121,6 @@ module ActiveMerchant
         register_user_request = build_registration_request
         response = commit(save_request(register_user_request), (options[:test] || false)).gsub(/<(\/)?.*?\:(.*?)>/, '<\1\2>')
         
-        if $DEBUG
-          puts
-          puts register_user_request
-          puts
-          puts response
-          puts
-        end
         parse_registration_response(response, options)
       end
       
@@ -135,13 +128,6 @@ module ActiveMerchant
         options = @options.update(options)
         subscribe_user_request = build_subscription_request
         response = commit(save_request(subscribe_user_request), (options[:test] || false)).gsub(/<(\/)?.*?\:(.*?)>/, '<\1\2>')
-        if $DEBUG
-          puts
-          puts subscribe_user_request
-          puts
-          puts response
-          puts
-        end
         parse_subscription_response(response, options)
       end
       
@@ -444,9 +430,16 @@ module ActiveMerchant
             packages.each_with_index do |pkg, i|
               rs << XmlNode.new('RequestedPackageLineItems') do |rps|
                 rps << XmlNode.new('SequenceNumber', "%03d" % (i + 1))
+                if packages.first.options[:value]
+                  rps << XmlNode.new('InsuredValue') do |iv|
+                    iv << XmlNode.new('Currency', packages.first.currency)
+                    iv << XmlNode.new('Amount', packages.first.options[:value])
+                  end
+                end
                 rps << XmlNode.new('Weight') do |tw|
-                  tw << XmlNode.new('Units', imperial ? 'LB' : 'KG')
-                  tw << XmlNode.new('Value', [((imperial ? pkg.lbs : pkg.kgs).to_f*1000).round/1000.0, 0.1].max)
+                  imperial_weight = packages.first.options[:units]
+                  tw << XmlNode.new('Units', imperial_weight ? 'LB' : 'KG')
+                  tw << XmlNode.new('Value', [((imperial_weight ? pkg.lbs : pkg.kgs).to_f*1000).round/1000.0, 0.1].max)
                 end
 
                 unless [:length,:width,:height].all? { |v| pkg.inches(v) == 0 }
