@@ -319,6 +319,7 @@ module ActiveMerchant
       end
       
       def build_rate_request(origin, destination, packages, options = {})
+        #imperial = ['US','LR','MM'].include?(origin.country_code(:alpha2))
         imperial = (packages.first.options[:units] == :imperial) ? true : false
 
         xml_request = XmlNode.new('RateRequest', 'xmlns' => 'http://fedex.com/ws/rate/v7') do |root_node|
@@ -437,9 +438,8 @@ module ActiveMerchant
                   end
                 end
                 rps << XmlNode.new('Weight') do |tw|
-                  imperial_weight = packages.first.options[:units]
-                  tw << XmlNode.new('Units', imperial_weight ? 'LB' : 'KG')
-                  tw << XmlNode.new('Value', [((imperial_weight ? pkg.lbs : pkg.kgs).to_f*1000).round/1000.0, 0.1].max)
+                  tw << XmlNode.new('Units', imperial ? 'LB' : 'KG')
+                  tw << XmlNode.new('Value', [((imperial ? pkg.lbs : pkg.kgs).to_f*1000).round/1000.0, 0.1].max)
                 end
 
                 unless [:length,:width,:height].all? { |v| pkg.inches(v) == 0 }
