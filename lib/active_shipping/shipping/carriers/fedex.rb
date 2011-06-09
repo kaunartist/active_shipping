@@ -28,7 +28,8 @@ module ActiveMerchant
       @@name = "FedEx"
       
       TEST_URL = 'https://gatewaybeta.fedex.com:443/xml'
-      LIVE_URL = 'https://gateway.fedex.com:443/xml'
+      #LIVE_URL = 'https://gateway.fedex.com:443/xml'
+      LIVE_URL = 'https://gateway.fedex.com/web-services'
       
       CarrierCodes = {
         "fedex_ground" => "FDXG",
@@ -319,7 +320,6 @@ module ActiveMerchant
       end
       
       def build_rate_request(origin, destination, packages, options = {})
-        #imperial = ['US','LR','MM'].include?(origin.country_code(:alpha2))
         imperial = (packages.first.options[:units] == :imperial) ? true : false
 
         xml_request = XmlNode.new('RateRequest', 'xmlns' => 'http://fedex.com/ws/rate/v7') do |root_node|
